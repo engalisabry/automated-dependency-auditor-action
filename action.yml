@@ -1,0 +1,11 @@
+name: 'Automated Dependency Auditor'
+description: 'Audit dependencies and generate a markdown report on outdated packages.'
+author: 'Ali Sabry'
+inputs: {}
+runs:
+  using: 'node16'
+  main: 'index.js'
+branding:
+  icon: 'check-circle'
+  color: 'blue'
+
