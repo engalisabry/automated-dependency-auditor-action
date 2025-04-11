@@ -27,10 +27,9 @@ function cleanVersion(version) {
 
 function printProgress(current, total) {
   const percent = ((current / total) * 100).toFixed(1);
-  process.stdout.clearLine(0);
-  process.stdout.cursorTo(0);
-  process.stdout.write(`Progress: ${percent}% (${current}/${total})`);
+  console.log(`Progress: ${percent}% (${current}/${total})`);
 }
+
 
 async function generateReport() {
   const packagePath = path.join(process.cwd(), 'package.json');
