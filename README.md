@@ -1,15 +1,35 @@
-# Automated Dependency Auditor Action
+# 🔍 Automated Dependency Auditor GitHub Action
 
-This GitHub Action automatically audits your project's dependencies and generates a markdown report with current and latest version information.
+Easily audit your `package.json` dependencies in your GitHub project and generate a clean, readable Markdown report that shows outdated packages and their latest versions. Perfect for maintaining healthy dependencies and staying secure!
 
-## Usage
+📦 **Published on GitHub Marketplace:**  
+👉 [View on GitHub Marketplace](https://github.com/marketplace/actions/automated-dependency-auditor)
 
-You can integrate this action into your GitHub workflow as follows:
+---
+
+## ✨ Features
+
+- 📄 Generates a clear Markdown report of outdated dependencies
+- ✅ Differentiates between up-to-date and outdated packages
+- 📊 Shows progress percentage while generating the report
+- 🧹 Auto-formats the report into easy-to-read columns
+- 🪄 Zero setup once integrated into your workflow
+
+---
+
+## 🚀 Usage
+
+### 1. Add to your workflow
+
+Add the following to `.github/workflows/dependency-audit.yml`:
 
 ```yaml
-name: Dependency Audit Workflow
+name: Dependency Audit
 
-on: [push]
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Every Sunday at midnight
+  workflow_dispatch:
 
 jobs:
   audit:
@@ -18,8 +38,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Run Dependency Auditor
-        uses: engalisabry/automated-dependency-auditor-action@v1
+      - name: Use Node.js
+        uses: actions/setup-node@v3
         with:
-          # any inputs (if needed) can be added here
+          node-version: '18'
+
+      - name: Run Dependency Auditor
+        uses: engalisabry/automated-dependency-auditor-action@v1.0.0
 
