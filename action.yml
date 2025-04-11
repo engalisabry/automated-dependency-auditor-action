@@ -7,7 +7,7 @@ runs:
   main: 'index.js'
 branding:
   icon: search
-  color: gray
+  color: gray-dark
 tags:
   - nodejs
   - audit
