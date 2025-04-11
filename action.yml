@@ -6,6 +6,16 @@ runs:
   using: 'node16'
   main: 'index.js'
 branding:
-  icon: 'check-circle'
-  color: 'blue'
-
+  icon: search
+  color: gray
+tags:
+  - nodejs
+  - audit
+  - dependencies
+  - dependency-check
+  - npm
+  - devtools
+  - ci
+  - markdown
+  - github-actions
+  - security
