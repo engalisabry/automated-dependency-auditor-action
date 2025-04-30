@@ -4,7 +4,6 @@ const path = require('path');
 const core = require('@actions/core');
 const { spawn } = require('child_process');
 
-
 // Utility to pad columns for better readability
 function pad(str, length) {
   str = str || '';
@@ -56,7 +55,6 @@ async function generateReport() {
 
   process.stdout.write("\n");
 
-  // Define column widths
   const colWidths = {
     dep: 35,
     current: 18,
@@ -101,27 +99,10 @@ async function generateReport() {
   core.info("✔ Dependency report saved to dependency_report.md");
 }
 
-async function waitForServer(timeout = 15000, interval = 1000) {
-  return new Promise((resolve, reject) => {
-    const start = Date.now();
-    const check = async () => {
-      try {
-        await axios.get('http://localhost:8001/health');
-        resolve();
-      } catch {
-        if (Date.now() - start > timeout) {
-          reject(new Error('Timed out waiting for DeepWiki server'));
-        } else {
-          setTimeout(check, interval);
-        }
-      }
-    };
-    check();
-  });
-}
-
 async function runDeepWiki() {
   const openaiKey = core.getInput('openai_api_key');
+  const googleKey = core.getInput('google_api_key') || '';
+
   if (!openaiKey) {
     throw new Error('Missing required input: openai_api_key');
   }
@@ -129,34 +110,28 @@ async function runDeepWiki() {
   core.startGroup('🚀 Starting DeepWiki AI Wiki Generator');
 
   const configPath = path.join(__dirname, 'deepwiki', 'api', 'config.yaml');
-  fs.writeFileSync(configPath, `OPENAI_API_KEY: ${openaiKey}\nVECTOR_STORE: local\n`);
+  fs.writeFileSync(configPath, `OPENAI_API_KEY: ${openaiKey}\nGOOGLE_API_KEY: ${googleKey}\nVECTOR_STORE: local\n`);
 
-  const serverProcess = spawn('python3', ['-m', 'uvicorn', 'main:app', '--port', '8001'], {
+  const pyProcess = spawn('python3', ['main.py'], {
     cwd: path.join(__dirname, 'deepwiki', 'api'),
-    env: { ...process.env },
-    stdio: 'inherit',
+    env: {
+      ...process.env,
+      OPENAI_API_KEY: openaiKey,
+      GOOGLE_API_KEY: googleKey
+    },
+    stdio: 'inherit'
   });
 
-  // Give server time to boot and confirm it works
-  await waitForServer();
-
-  core.info('✨ DeepWiki server is running. Generating AI documentation...');
-
-  const response = await axios.post('http://localhost:8001/generate', {
-    repo_path: process.cwd(),
-    output_path: 'deepwiki_output',
-  }, {
-    headers: {
-      Authorization: `Bearer ${openaiKey}`,
-      'Content-Type': 'application/json',
-    }
+  await new Promise((resolve, reject) => {
+    pyProcess.on('close', (code) => {
+      if (code === 0) {
+        core.info('✅ DeepWiki generation completed successfully.');
+        resolve();
+      } else {
+        reject(new Error(`DeepWiki process exited with code ${code}`));
+      }
+    });
   });
-
-  if (response.status === 200) {
-    core.info('✅ DeepWiki generation complete.');
-  } else {
-    throw new Error(`DeepWiki API responded with status ${response.status}`);
-  }
 
   core.endGroup();
 }
@@ -170,3 +145,4 @@ async function runDeepWiki() {
     core.setFailed(`Action failed: ${err.message}`);
   }
 })();
+
