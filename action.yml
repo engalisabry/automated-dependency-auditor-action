@@ -1,21 +1,28 @@
-name: 'Automated Dependency Auditor'
-description: 'Audit dependencies and generate a markdown report on outdated packages.'
+name: 'Automated Dependency Auditor + AI Wiki'
+description: 'Audit dependencies and generate an AI-powered wiki using OpenAI.'
 author: 'Ali Sabry'
-inputs: {}
+inputs:
+  openai_api_key:
+    description: 'OpenAI API key'
+    required: true
+
 runs:
   using: 'node16'
   main: 'index.js'
+
 branding:
   icon: search
   color: gray-dark
+
 tags:
   - nodejs
   - audit
   - dependencies
   - dependency-check
-  - npm
+  - openai
+  - ai
   - devtools
-  - ci
   - markdown
+  - documentation
   - github-actions
-  - security
+

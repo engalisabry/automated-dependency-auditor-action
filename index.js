@@ -2,6 +2,7 @@ const fs = require('fs');
 const axios = require('axios');
 const path = require('path');
 const core = require('@actions/core');
+const { spawn } = require('child_process');
 
 
 // Utility to pad columns for better readability
@@ -29,7 +30,6 @@ function printProgress(current, total) {
   const percent = ((current / total) * 100).toFixed(1);
   console.log(`Progress: ${percent}% (${current}/${total})`);
 }
-
 
 async function generateReport() {
   const packagePath = path.join(process.cwd(), 'package.json');
@@ -101,5 +101,72 @@ async function generateReport() {
   core.info("✔ Dependency report saved to dependency_report.md");
 }
 
-generateReport();
+async function waitForServer(timeout = 15000, interval = 1000) {
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    const check = async () => {
+      try {
+        await axios.get('http://localhost:8001/health');
+        resolve();
+      } catch {
+        if (Date.now() - start > timeout) {
+          reject(new Error('Timed out waiting for DeepWiki server'));
+        } else {
+          setTimeout(check, interval);
+        }
+      }
+    };
+    check();
+  });
+}
 
+async function runDeepWiki() {
+  const openaiKey = core.getInput('openai_api_key');
+  if (!openaiKey) {
+    throw new Error('Missing required input: openai_api_key');
+  }
+
+  core.startGroup('🚀 Starting DeepWiki AI Wiki Generator');
+
+  const configPath = path.join(__dirname, 'deepwiki', 'api', 'config.yaml');
+  fs.writeFileSync(configPath, `OPENAI_API_KEY: ${openaiKey}\nVECTOR_STORE: local\n`);
+
+  const serverProcess = spawn('python3', ['-m', 'uvicorn', 'main:app', '--port', '8001'], {
+    cwd: path.join(__dirname, 'deepwiki', 'api'),
+    env: { ...process.env },
+    stdio: 'inherit',
+  });
+
+  // Give server time to boot and confirm it works
+  await waitForServer();
+
+  core.info('✨ DeepWiki server is running. Generating AI documentation...');
+
+  const response = await axios.post('http://localhost:8001/generate', {
+    repo_path: process.cwd(),
+    output_path: 'deepwiki_output',
+  }, {
+    headers: {
+      Authorization: `Bearer ${openaiKey}`,
+      'Content-Type': 'application/json',
+    }
+  });
+
+  if (response.status === 200) {
+    core.info('✅ DeepWiki generation complete.');
+  } else {
+    throw new Error(`DeepWiki API responded with status ${response.status}`);
+  }
+
+  core.endGroup();
+}
+
+// Entry point
+(async () => {
+  try {
+    await generateReport();
+    await runDeepWiki();
+  } catch (err) {
+    core.setFailed(`Action failed: ${err.message}`);
+  }
+})();
